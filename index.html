@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.wms.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="data/PGOMClassificaci_2.js"></script>
+        <script src="data/PGOMQualificacio_3.js"></script>
+        <script src="data/TermeMunicipal_4.js"></script>
+        <script>
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        })
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+        }
+        map.createPane('pane_ESRISatellite_0');
+        map.getPane('pane_ESRISatellite_0').style.zIndex = 400;
+        var layer_ESRISatellite_0 = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            pane: 'pane_ESRISatellite_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 20
+        });
+        layer_ESRISatellite_0;
+        map.addLayer(layer_ESRISatellite_0);
+        map.createPane('pane_Capestopografiquesgris_1');
+        map.getPane('pane_Capestopografiquesgris_1').style.zIndex = 401;
+        var layer_Capestopografiquesgris_1 = L.WMS.layer("https://geoserveis.icgc.cat/icc_mapesmultibase/utm/wms/service?LAYERS=topogris&EXCEPTIONS=application/vnd.ogc.se_xml&VERSION=1.1.1&STYLES=&SRS=EPSG:25831&BBOX=257904,4484796,398704,4625596&WIDTH=256&HEIGHT=256", "topogris", {
+            pane: 'pane_Capestopografiquesgris_1',
+            format: 'image/png',
+            uppercase: true,
+            transparent: true,
+            continuousWorld : true,
+            tiled: true,
+            info_format: 'text/html',
+            opacity: 1,
+            attribution: '',
+        });
+        map.addLayer(layer_Capestopografiquesgris_1);
+        function pop_PGOMClassificaci_2(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Codi MUC</th>\
+                        <td>' + (feature.properties['C_CLAS_MUC'] !== null ? autolinker.link(String(feature.properties['C_CLAS_MUC']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Denominació MUC</th>\
+                        <td>' + (feature.properties['D_CLAS_MUC'] !== null ? autolinker.link(String(feature.properties['D_CLAS_MUC']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Codi AJUNTAMENT</th>\
+                        <td>' + (feature.properties['C_CLAS_AJT'] !== null ? autolinker.link(String(feature.properties['C_CLAS_AJT']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Denominació AJUNTAMENT</th>\
+                        <td>' + (feature.properties['D_CLAS_AJT'] !== null ? autolinker.link(String(feature.properties['D_CLAS_AJT']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+        function style_PGOMClassificaci_2_0(feature) {
+            var context = {
+                feature: feature,
+                variables: {}
+            };
+            // Start of if blocks and style check logic
+            if (exp_PGOMClassificaci_2rule0_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMClassificaci_2',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(207,117,0,0.7098039215686275)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMClassificaci_2rule1_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMClassificaci_2',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(237,150,40,0.611764705882353)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMClassificaci_2rule2_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMClassificaci_2',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(238,221,130,0.8)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMClassificaci_2rule3_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMClassificaci_2',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(250,250,210,0.8)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMClassificaci_2rule4_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMClassificaci_2',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,255,255,0.5529411764705883)',
+                interactive: true,
+            };
+                }
+            else {
+                return {fill: false, stroke: false};
+            }
+        }
+        map.createPane('pane_PGOMClassificaci_2');
+        map.getPane('pane_PGOMClassificaci_2').style.zIndex = 402;
+        map.getPane('pane_PGOMClassificaci_2').style['mix-blend-mode'] = 'normal';
+        var layer_PGOMClassificaci_2 = new L.geoJson(json_PGOMClassificaci_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_PGOMClassificaci_2',
+            layerName: 'layer_PGOMClassificaci_2',
+            pane: 'pane_PGOMClassificaci_2',
+            onEachFeature: pop_PGOMClassificaci_2,
+            style: style_PGOMClassificaci_2_0,
+        });
+        bounds_group.addLayer(layer_PGOMClassificaci_2);
+        map.addLayer(layer_PGOMClassificaci_2);
+        function pop_PGOMQualificacio_3(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Codi MUC</th>\
+                        <td>' + (feature.properties['C_QUAL_MUC'] !== null ? autolinker.link(String(feature.properties['C_QUAL_MUC']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Denominació MUC</th>\
+                        <td>' + (feature.properties['D_QUAL_MUC'] !== null ? autolinker.link(String(feature.properties['D_QUAL_MUC']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Codi AJUNTAMENT</th>\
+                        <td>' + (feature.properties['C_QUAL_AJT'] !== null ? autolinker.link(String(feature.properties['C_QUAL_AJT']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Denominació AJUNTAMENT</th>\
+                        <td>' + (feature.properties['D_QUAL_AJT'] !== null ? autolinker.link(String(feature.properties['D_QUAL_AJT']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+        function style_PGOMQualificacio_3_0(feature) {
+            var context = {
+                feature: feature,
+                variables: {}
+            };
+            // Start of if blocks and style check logic
+            if (exp_PGOMQualificacio_3rule0_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(216,191,216,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule1_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(223,211,195,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule2_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(228,225,250,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule3_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(250,250,210,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule4_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(195,195,195,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule5_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(200,195,120,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule6_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(224,255,180,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule7_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(217,232,217,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule8_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(168,133,127,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule9_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(136,108,14,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule10_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(192,160,121,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule11_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,255,230,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule12_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(204,255,230,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule13_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(135,206,235,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule14_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(221,221,221,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule15_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(230,255,230,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule16_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(137,205,205,0.6196078431372549)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule17_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(192,255,168,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule18_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,255,240,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule19_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(221,221,221,0.6)',
+                interactive: true,
+            };
+                }
+                else if (exp_PGOMQualificacio_3rule20_eval_expression(context)) {
+                  return {
+                pane: 'pane_PGOMQualificacio_3',
+                opacity: 1,
+                color: 'rgba(125,139,143,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(221,221,221,0.6)',
+                interactive: true,
+            };
+                }
+            else {
+                return {fill: false, stroke: false};
+            }
+        }
+        map.createPane('pane_PGOMQualificacio_3');
+        map.getPane('pane_PGOMQualificacio_3').style.zIndex = 403;
+        map.getPane('pane_PGOMQualificacio_3').style['mix-blend-mode'] = 'normal';
+        var layer_PGOMQualificacio_3 = new L.geoJson(json_PGOMQualificacio_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_PGOMQualificacio_3',
+            layerName: 'layer_PGOMQualificacio_3',
+            pane: 'pane_PGOMQualificacio_3',
+            onEachFeature: pop_PGOMQualificacio_3,
+            style: style_PGOMQualificacio_3_0,
+        });
+        bounds_group.addLayer(layer_PGOMQualificacio_3);
+        map.addLayer(layer_PGOMQualificacio_3);
+        function pop_TermeMunicipal_4(feature, layer) {
+            var popupContent = '<table>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_TermeMunicipal_4_0() {
+            return {
+                pane: 'pane_TermeMunicipal_4',
+                opacity: 1,
+                color: 'rgba(219,30,42,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'round',
+                weight: 5.0,
+                fillOpacity: 0,
+                interactive: false,
+            }
+        }
+        map.createPane('pane_TermeMunicipal_4');
+        map.getPane('pane_TermeMunicipal_4').style.zIndex = 404;
+        map.getPane('pane_TermeMunicipal_4').style['mix-blend-mode'] = 'normal';
+        var layer_TermeMunicipal_4 = new L.geoJson(json_TermeMunicipal_4, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_TermeMunicipal_4',
+            layerName: 'layer_TermeMunicipal_4',
+            pane: 'pane_TermeMunicipal_4',
+            onEachFeature: pop_TermeMunicipal_4,
+            style: style_TermeMunicipal_4_0,
+        });
+        bounds_group.addLayer(layer_TermeMunicipal_4);
+        map.addLayer(layer_TermeMunicipal_4);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var overlaysTree = [
+            {label: '<img src="legend/TermeMunicipal_4.png" /> Terme Municipal', layer: layer_TermeMunicipal_4},
+            {label: 'PGOM - Qualificacio<br /><table><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_ActivitateconòmicaServeis0.png" /></td><td>Activitat econòmica, Serveis</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_UrbanitzableDesenvolupamentperaúsdhabitatge1.png" /></td><td>Urbanitzable, Desenvolupament per a ús d\'habitatge</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_UrbanitzableDesenvolupamentperactivitateconòmica2.png" /></td><td>Urbanitzable, Desenvolupament per activitat econòmica</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_UrbanitzableUrbanitzablenodelimitat3.png" /></td><td>Urbanitzable, Urbanitzable no delimitat</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_AltresReformaurbana4.png" /></td><td>Altres, Reforma urbana</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_AltresConservació5.png" /></td><td>Altres, Conservació</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_NourbanitzableOrdinari6.png" /></td><td>No urbanitzable, Ordinari</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_NourbanitzableProtecciólocal7.png" /></td><td>No urbanitzable, Protecció local</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_ResidencialNucliantic8.png" /></td><td>Residencial, Nucli antic</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_ResidencialUrbàtradicional9.png" /></td><td>Residencial, Urbà tradicional</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_ResidencialOrdenacióoberta10.png" /></td><td>Residencial, Ordenació oberta</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_ResidencialHabitatgesaïllatsoadossats11.png" /></td><td>Residencial, Habitatges aïllats o adossats</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_SistemesCostaner12.png" /></td><td>Sistemes, Costaner</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_SistemesEquipaments13.png" /></td><td>Sistemes, Equipaments</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_SistemesFerroviari14.png" /></td><td>Sistemes, Ferroviari</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_SistemesProtecció15.png" /></td><td>Sistemes, Protecció</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_SistemesServeistècnics16.png" /></td><td>Sistemes, Serveis tècnics</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_SistemesEspaislliurespúblics17.png" /></td><td>Sistemes, Espais lliures públics</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_SistemesViariEixosestructurants18.png" /></td><td>Sistemes, Viari, Eixos estructurants</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_SistemesViariAltreviariensòlurbà19.png" /></td><td>Sistemes, Viari, Altre viari en sòl urbà</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMQualificacio_3_SistemesViariAltreviariensòlnourbanitzable20.png" /></td><td>Sistemes, Viari, Altre viari en sòl no urbanitzable</td></tr></table>', layer: layer_PGOMQualificacio_3},
+            {label: 'PGOM - Classificació<br /><table><tr><td style="text-align: center;"><img src="legend/PGOMClassificaci_2_SòlUrbàConsolidat0.png" /></td><td>Sòl Urbà Consolidat</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMClassificaci_2_SòlUrbàNoConsolidat1.png" /></td><td>Sòl Urbà No Consolidat</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMClassificaci_2_SòlUrbanitzableDelimitat2.png" /></td><td>Sòl Urbanitzable Delimitat</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMClassificaci_2_SòlUrbanitzableNoDelimitat3.png" /></td><td>Sòl Urbanitzable No Delimitat</td></tr><tr><td style="text-align: center;"><img src="legend/PGOMClassificaci_2_SòlNoUrbanitzable4.png" /></td><td>Sòl No Urbanitzable</td></tr></table>', layer: layer_PGOMClassificaci_2},
+            {label: "Capes topografiques - gris", layer: layer_Capestopografiquesgris_1, radioGroup: 'bm' },
+            {label: "ESRI Satellite", layer: layer_ESRISatellite_0, radioGroup: 'bm' },]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: false, 
+        });
+        lay.addTo(map);
+		document.addEventListener("DOMContentLoaded", function() {
+            // set new Layers List height which considers toggle icon
+            function newLayersListHeight() {
+                var layerScrollbarElement = document.querySelector('.leaflet-control-layers-scrollbar');
+                if (layerScrollbarElement) {
+                    var layersListElement = document.querySelector('.leaflet-control-layers-list');
+                    var originalHeight = layersListElement.style.height 
+                        || window.getComputedStyle(layersListElement).height;
+                    var newHeight = parseFloat(originalHeight) - 50;
+                    layersListElement.style.height = newHeight + 'px';
+                }
+            }
+            var isLayersListExpanded = true;
+            var controlLayersElement = document.querySelector('.leaflet-control-layers');
+            var toggleLayerControl = document.querySelector('.leaflet-control-layers-toggle');
+            // toggle Collapsed/Expanded and apply new Layers List height
+            toggleLayerControl.addEventListener('click', function() {
+                if (isLayersListExpanded) {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                } else {
+                    controlLayersElement.classList.add('leaflet-control-layers-expanded');
+                }
+                isLayersListExpanded = !isLayersListExpanded;
+                newLayersListHeight()
+            });	
+			// apply new Layers List height if toggle layerstree
+			if (controlLayersElement) {
+				controlLayersElement.addEventListener('click', function(event) {
+					var toggleLayerHeaderPointer = event.target.closest('.leaflet-layerstree-header-pointer span');
+					if (toggleLayerHeaderPointer) {
+						newLayersListHeight();
+					}
+				});
+			}
+            // Collapsed/Expanded at Start to apply new height
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            // Collapsed touch/small screen
+            var isSmallScreen = window.innerWidth < 650;
+            if (isSmallScreen) {
+                setTimeout(function() {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                    isLayersListExpanded = !isLayersListExpanded;
+                }, 500);
+            }  
+        });       
+        setBounds();
+        var i = 0;
+        layer_PGOMQualificacio_3.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['C_QUAL_AJT'] !== null?String('<div style="color: #323232; font-size: 10pt; font-weight: bold; font-family: \'Open Sans\', sans-serif;">' + layer.feature.properties['C_QUAL_AJT']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_PGOMQualificacio_3'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        resetLabels([layer_PGOMQualificacio_3]);
+        map.on("zoomend", function(){
+            resetLabels([layer_PGOMQualificacio_3]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_PGOMQualificacio_3]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_PGOMQualificacio_3]);
+        });
+        </script>
+    </body>
+</html>
